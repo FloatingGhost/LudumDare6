@@ -1,0 +1,10 @@
+{
+  "libs": [
+    "browser",
+    "jquery",
+    "phaser"
+  ],
+  "loadEagerly": [
+    "lib/*.js"
+  ]
+}
