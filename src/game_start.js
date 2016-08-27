@@ -17,12 +17,12 @@ GameStart.prototype = {
 
   preload:function() {
     game.load.image("bullet_img", "res/img/entities/Bullet.png");
-    game.load.tilemap("Floor1",  "res/maps/Main_Map.json", 
+    game.load.tilemap("Floor1",  "res/maps/Floor1.json", 
                       null, Phaser.Tilemap.TILED_JSON);
     game.load.image("Tiles",  "res/img/TILES.png");
     game.load.image("Door", "res/img/entities/Door.png"); 
     game.load.image("pistol", "res/img/entities/Gun.png"); 
-    game.load.spritesheet("player", "res/img/entities/Player_Anim.png",50,50); 
+    game.load.spritesheet("player", "res/img/entities/Player_Anim.png",50,55); 
 
   },
 
@@ -40,13 +40,17 @@ GameStart.prototype = {
     //CREATE SPRITES  
     this.gun = game.add.sprite(game.world.centerX, game.world.centerY, "pistol")
     this.player = new Entity();   
-    this.player.sprite = game.add.sprite(32*88, 32*147, 
+    this.player.sprite = game.add.sprite(32*44, 32*98, 
                           "player");
     this.player.walk_away = this.player.sprite.animations.add("walk_away", 
                                                               [0,1,2,3,4,5,6,7,8,9]);
     this.player.walk_to   = this.player.sprite.animations.add("walk_to", 
-                                                       [11,12,13,14,15,16,17,18,19,20]);
-    this.player.sprite.animations.play("walk_away", 15, true);
+                                                       [10,11,12,13,14,15,16,17,18,19])    
+    
+    this.player.walk_right = this.player.sprite.animations.add("walk_right",
+                                                        [20,21,22,23,24,25,26]);
+    this.player.walk_left = this.player.sprite.animations.add("walk_left",
+                                                        [27,28,29,30,31,32,33]);
     game.camera.follow(this.player.sprite, Phaser.Camera.FOLLOW_TOPDOWN);
     
     //CREATE GROUPS
@@ -95,7 +99,7 @@ GameStart.prototype = {
     for ( i = 0; i < dat.length; i++) {
       for (j = 0; j < dat[i].length; j++) {
         tile = dat[i][j]
-        if ([IMPASSE, CLAY, CRACKEDSTONE].includes(tile.index)) {
+        if ([WETSAND, IMPASSE, CLAY, CRACKEDSTONE].includes(tile.index)) {
           sightBlockers.push(game.add.illuminated.rectangleObject(
             tile.worldX, tile.worldY,33,33));
         } 
@@ -109,18 +113,27 @@ GameStart.prototype = {
     this.path = new PF.AStarFinder();
     
     game.world.bringToTop(this.bullets)
-    game.world.bringToTop(this.gun);
     
     this.lamps = [];
 
-    this.player.lamp = game.add.illuminated.lamp(400,400, {distance:0});
+    this.player.lamp = game.add.illuminated.lamp(0,00, {distance:200,
+                                                           colour:'rgba(255,255,255,1)'});
+     
     //this.player.lamp.createLighting(this.player.sprite);
-    //this.mask.addLampSprite(this.player.sprite);
-    game.world.bringToTop(this.player.sprite);  
-    
     this.player.lamp.createLighting(sightBlockers);
     this.lamps.push(this.player.lamp);
-    this.mask = game.add.illuminated.darkMask(this.lamps, "#120b0b");
+    this.mask = game.add.illuminated.darkMask(this.lamps);
+    
+    //this.mask.addLampSprite(this.player.sprite);
+    this.mask.fixedToCamera = false;
+    this.mask.x = 0; this.mask.y = 0;
+    this.mask.width = 200*32;
+    this.mask.height = 150*32;
+    this.player.lamp.bringToTop()
+  
+    //this.mask.alpha = 0.7;
+    game.world.bringToTop(this.gun);
+    game.world.bringToTop(this.player.sprite);  
   },
 
   mapToPath: function(bk) {
@@ -160,11 +173,12 @@ GameStart.prototype = {
     //LEFT/RIGHT
     if (this.cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.A)) {
       this.player.sprite.body.velocity.x = -(this.PLAYER_VEL);
+        this.player.sprite.animations.play("walk_left",15, true);
     }
     else if (this.cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D)) {
       this.player.sprite.body.velocity.x = (this.PLAYER_VEL);
-    
-    }
+      this.player.sprite.animations.play("walk_right", 15, true);
+    }  
     //CLICK
     if (game.input.activePointer.isDown) {
       if (this.can_fire) {
@@ -173,11 +187,14 @@ GameStart.prototype = {
         setTimeout(function(that){that.can_fire = true}, this.RELOAD_RATE, this);
       }
     }
+  
+    this.mask.refresh();
     this.player.lamp.x = this.player.sprite.world.x-200;
     this.player.lamp.y = this.player.sprite.world.y-200;
+    
     this.player.lamp.refresh();
-    //this.mask.refresh();
-  },
+    
+    },
 
   fire: function(x, y, ang) {
     var offset = this.player.sprite.width;
