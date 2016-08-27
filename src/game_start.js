@@ -11,6 +11,10 @@ GameStart.prototype = {
   preload:function() {
     game.load.image("player_img", "res/img/entities/Player.png");        
     game.load.image("bullet_img", "res/img/entities/Bullet.png");
+    game.load.tilemap("TESTMAP",  "res/maps/Test_Map.json", 
+                      null, Phaser.Tilemap.TILED_JSON);
+    game.load.image("Tile1",  "res/img/TILES.png");
+  
   },
 
   init:   function() {
@@ -18,9 +22,21 @@ GameStart.prototype = {
   },  
 
   create: function() {
+    //LOAD MAPS
+    this.map = game.add.tilemap("TESTMAP");
+    this.map.addTilesetImage("Tile1");
+    this.layer = this.map.createLayer("Tile Layer 1");
+    this.layer.resizeWorld();
+    this.map.setCollisionBetween(3,4);
     //START JEWISH PHYSICS
     game.physics.startSystem(Phaser.Physics.BOX2D);
-  
+
+    //ALLOW JEWS TO CONTROL THE WORLD
+    var converted = game.physics.box2d.convertTilemap(this.map, this.layer);    
+    for (var i = 0; i < converted.length; i++) {
+      converted[i].setCollisionCategory(100);
+    }  
+
     //CREATE SPRITES  
     this.player = new Entity();   
     this.player.sprite = game.add.sprite(game.world.centerX, game.world.centerY, "player_img");
@@ -44,27 +60,26 @@ GameStart.prototype = {
     
     //UP/DOWN
     if (this.cursors.up.isDown || game.input.keyboard.isDown(Phaser.Keyboard.W)) {
-      this.player.sprite.body.moveUp(400);
+      this.player.sprite.body.velocity.y = -(400);
     }                          
     else if (this.cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S)) {
-      this.player.sprite.body.moveDown(400);
+      this.player.sprite.body.velocity.y = (400);
     }
 
     //LEFT/RIGHT
     if (this.cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.A)) {
-      this.player.sprite.body.moveLeft(400);
+      this.player.sprite.body.velocity.x = -(400);
     }
     else if (this.cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D)) {
-      this.player.sprite.body.moveRight(400);
+      this.player.sprite.body.velocity.x = (400);
+    
     }
-
     //CLICK
     if (game.input.activePointer.isDown) {
       if (this.can_fire) {
         this.fire(this.player.sprite.x, this.player.sprite.y);
         this.can_fire = false;
         setTimeout(function(that){that.can_fire = true}, this.RELOAD_RATE, this);
-        
       }
     }
   },
@@ -77,6 +92,11 @@ GameStart.prototype = {
     new_bullet.bullet = true;
     new_bullet.body.velocity.x = this.BULLET_VEL * Math.sin(- angle_to_mouse);
     new_bullet.body.velocity.y = this.BULLET_VEL * Math.cos(angle_to_mouse);
+    new_bullet.body.setCategoryContactCallback(100, this.kill, this);
+  },
+
+  kill: function(body1, body2, fixture1, fixture2, begin) {
+    setTimeout(function(thingy){thingy.sprite.destroy();}, 100, body1);
   },
 }
 
