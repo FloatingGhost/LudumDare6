@@ -11,18 +11,19 @@ GameStart.prototype = {
   BULLET_VEL: 500,
   RELOAD_RATE: 100,
   PLAYER_VEL: 200,
-
-  DOOR_BODY: 200,
   MAP_BODY : 100,
   
+  INVENTORY : {}, 
 
   preload:function() {
-    game.load.image("player_img", "res/img/entities/Player.png");        
     game.load.image("bullet_img", "res/img/entities/Bullet.png");
-    game.load.tilemap("TESTMAP",  "res/maps/Test_Map.json", 
+    game.load.tilemap("Floor1",  "res/maps/Main_Map.json", 
                       null, Phaser.Tilemap.TILED_JSON);
-    game.load.image("Tile1",  "res/img/TILES.png");
+    game.load.image("Tiles",  "res/img/TILES.png");
     game.load.image("Door", "res/img/entities/Door.png"); 
+    game.load.image("pistol", "res/img/entities/Gun.png"); 
+    game.load.spritesheet("player", "res/img/entities/Player_Anim.png",50,50); 
+
   },
 
   init:   function() {
@@ -30,55 +31,24 @@ GameStart.prototype = {
   },  
 
   create: function() {
-    //GENERATE WORLD
-    [this.worldMap, this.mapPos] = generateWorld(5, 5);
-
-    //GENERATE ROOM OBJECTS
-    this.tilemaps = ["TESTMAP"]
-
-    //CREATE STARTING ROOM
-    this.worldMap[this.mapPos.x][this.mapPos.y] = new Room("TESTMAP");
-    //CREATE DOORS
-    for (k = -1; k <= 1; k++) {          
-      for (l = -1; l <=1; l++) {
-        try {
-          var xor = Math.abs(k) ^ Math.abs(l);
-          if (xor && this.worldMap[this.mapPos.x+k][this.mapPos.y + l] != null) { 
-            //We need a door             
-            this.worldMap[this.mapPos.x][this.mapPos.y].addDoor(this.mapPos.x + k, this.mapPos.y + l);
-          } 
-        } catch (e) { console.log(e) }
-      }
-    }
-    //ASSIGN EACH ROOM A MAP
-    for (i = 0; i < this.worldMap.length; i++) {
-      for (j = 0; j < this.worldMap[i].length; j++) {
-        if (this.worldMap[i][j] === 1) {
-          m = this.tilemaps[Math.floor(Math.random()*this.tilemaps.length)]
-          this.worldMap[i][j] = new Room(m);
-          //CREATE DOORS
-          for (k = -1; k <= 1; k++) {
-            for (l = -1; l <=1; l++) {
-              try {
-                var xor = Math.abs(k) ^ Math.abs(l);
-                if (xor && this.worldMap[i+k][j+l] != null) {
-                  //We need a door
-                  this.worldMap[i][j].addDoor(i+k, j+l);
-                }
-              } catch (e) {}
-            }
-          }
-        }    
-      }
-    }
-    document.getElementById("map").innerHTML = JSON.stringify(this.worldMap, null, 4);
+    
+    game.plugins.add(Phaser.Plugin.PhaserIlluminated);
 
     //START JEWISH PHYSICS
     game.physics.startSystem(Phaser.Physics.BOX2D);
 
     //CREATE SPRITES  
+    this.gun = game.add.sprite(game.world.centerX, game.world.centerY, "pistol")
     this.player = new Entity();   
-    this.player.sprite = game.add.sprite(game.world.centerX, game.world.centerY, "player_img");
+    this.player.sprite = game.add.sprite(32*88, 32*147, 
+                          "player");
+    this.player.walk_away = this.player.sprite.animations.add("walk_away", 
+                                                              [0,1,2,3,4,5,6,7,8,9]);
+    this.player.walk_to   = this.player.sprite.animations.add("walk_to", 
+                                                       [11,12,13,14,15,16,17,18,19,20]);
+    this.player.sprite.animations.play("walk_away", 15, true);
+    game.camera.follow(this.player.sprite, Phaser.Camera.FOLLOW_TOPDOWN);
+    
     //CREATE GROUPS
     this.bullets = game.add.group(); 
     this.doors   = game.add.physicsGroup(Phaser.Physics.BOX2D);
@@ -86,86 +56,71 @@ GameStart.prototype = {
     //ENABLE THE JEWISH PHYSIKS TO CONTROL SPRITE
     game.physics.box2d.enable(this.player.sprite);
     this.player.sprite.body.setCategoryContactCallback(this.DOOR_BODY, this.moveRoom, this);
+    this.player.sprite.body.fixedRotation = true
     
+
     //CREATE KEYBOARD STUFFS
     this.cursors = game.input.keyboard.createCursorKeys();
   
     //START PATHFINDER
     this.pathfinder = game.plugins.add(Phaser.Plugin.PathFinderPlugin);
     
-
-    //ENTER THE STARTING ROOM
-    this.enterRoom()
-  },
-
-  enterRoom: function(x,y) {
-    console.log("ENTERING ("+this.mapPos.x+","+this.mapPos.y+")");
-   
-    if (x != undefined) {
-      console.log("MOVEMENT: ",x,y);
-      if (x ==-1) this.player.sprite.body.x = 80;
-      if (x ==1)this.player.sprite.body.x = 560;
-      if (y ==1)this.player.sprite.body.y = 400;
-      if (y ==-1)this.player.sprite.body.y=80;
-    }
-    for (i = 0; i < this.doors.length; i++) {
-      this.doors.children[i].destroy()
-    } 
-    this.bullets.removeAll();
-    if (this.map) this.map.destroy();
-    if (this.layer) this.layer.destroy();
- 
-    //FIGURE OUT WHERE WE ARE
-    position = this.mapPos 
-    room = this.worldMap[position.x][position.y];
-    
     //LOAD MAPS
-    this.map = game.add.tilemap(room.tilemap);
+    this.map = game.add.tilemap("Floor1");
     
-    this.map.addTilesetImage("Tile1");
+    this.map.addTilesetImage("Main", "Tiles");
+
     this.layer = this.map.createLayer("Tile Layer 1");
+
     this.layer.resizeWorld();
-    this.map.setCollisionBetween(3,4);
+    
+    SAND = 5
+    IMPASSE = 7
+    WATER = 8
+    CLAY = 6
+    WETSAND = 3
+    CRACKEDSTONE = 4 
+    this.map.setCollision([CRACKEDSTONE, WETSAND, IMPASSE, WATER, CLAY], true);
 
     //ALLOW JEWS TO CONTROL THE WORLD
     converted = game.physics.box2d.convertTilemap(this.map, this.layer);    
+    
+    sightBlockers = []
     for (var i = 0; i < converted.length; i++) {
       converted[i].setCollisionCategory(this.MAP_BODY);
     }
-    
-    for (i = 0; i < room.doors.length; i++) {
-      var door = room.doors[i];
-      var yDiff = this.mapPos.y - door.toPosition.y;
-      var xDiff = this.mapPos.x - door.toPosition.x;
-      if (yDiff == -1) {
-        a = this.doors.create(game.world.centerX, 25, "Door");
-      } else if (yDiff == 1) { 
-        a = this.doors.create(game.world.centerX, 480-25, "Door");
-      } else if (xDiff == -1) {
-        a = this.doors.create(25, game.world.centerY, "Door");
-      } else {
-        a = this.doors.create(640-25, game.world.centerY, "Door");
+   
+    var dat = this.map.layers[0].data;
+
+    for ( i = 0; i < dat.length; i++) {
+      for (j = 0; j < dat[i].length; j++) {
+        tile = dat[i][j]
+        if ([IMPASSE, CLAY, CRACKEDSTONE].includes(tile.index)) {
+          sightBlockers.push(game.add.illuminated.rectangleObject(
+            tile.worldX, tile.worldY,33,33));
+        } 
       }
-      a.body.toPosition = door.toPosition;
-    }
-    for (i = 0; i < this.doors.length; i++) {
-      this.doors.children[i].body.static = true;
-      this.doors.children[i].body.setCollisionCategory(this.DOOR_BODY);
-    
     }
     //Enable pathfinder
-    console.log(this.map.layers[0].data)
     var dat = []
     dat = _.cloneDeep(this.map.layers[0].data)
     dat = this.mapToPath(dat);
-    console.log(dat);
     this.pf = new PF.Grid(dat);
     this.path = new PF.AStarFinder();
-    game.world.bringToTop(this.player.sprite);  
+    
     game.world.bringToTop(this.bullets)
-    game.world.bringToTop(this.doors);
-    console.log(this.path.findPath(0,0,2,2,this.pf));
+    game.world.bringToTop(this.gun);
+    
+    this.lamps = [];
 
+    this.player.lamp = game.add.illuminated.lamp(400,400, {distance:0});
+    //this.player.lamp.createLighting(this.player.sprite);
+    //this.mask.addLampSprite(this.player.sprite);
+    game.world.bringToTop(this.player.sprite);  
+    
+    this.player.lamp.createLighting(sightBlockers);
+    this.lamps.push(this.player.lamp);
+    this.mask = game.add.illuminated.darkMask(this.lamps, "#120b0b");
   },
 
   mapToPath: function(bk) {
@@ -182,16 +137,24 @@ GameStart.prototype = {
 
   update: function() {
     this.player.sprite.body.setZeroVelocity();
-    var angle_to_mouse = game.math.angleBetweenPoints(game.input.activePointer.position, this.player.sprite.position);    
-
-    this.player.sprite.body.rotation = angle_to_mouse;
-    
+    var angle_to_mouse = game.math.angleBetweenPoints({
+            x:game.input.activePointer.worldX,
+            y:game.input.activePointer.worldY},
+            {x: this.player.sprite.world.x, y:this.player.sprite.world.y});    
+    var rot = angle_to_mouse+ Math.PI/2;
+    this.gun.rotation = (rot+ Math.PI/2)
+    this.gun.x = this.player.sprite.world.x + Math.sin(-rot)*15
+    this.gun.y = this.player.sprite.world.y + Math.cos(rot)*15
     //UP/DOWN
     if (this.cursors.up.isDown || game.input.keyboard.isDown(Phaser.Keyboard.W)) {
       this.player.sprite.body.velocity.y = -(this.PLAYER_VEL);
+      this.player.sprite.animations.play("walk_away", 15, true)
     }                          
     else if (this.cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S)) {
       this.player.sprite.body.velocity.y = (this.PLAYER_VEL);
+      this.player.sprite.animations.play("walk_to", 15, true);
+    } else {
+      this.player.sprite.animations.stop();
     }
 
     //LEFT/RIGHT
@@ -205,17 +168,20 @@ GameStart.prototype = {
     //CLICK
     if (game.input.activePointer.isDown) {
       if (this.can_fire) {
-        this.fire(this.player.sprite.x, this.player.sprite.y);
+        this.fire(this.player.sprite.world.x, this.player.sprite.world.y, angle_to_mouse);
         this.can_fire = false;
         setTimeout(function(that){that.can_fire = true}, this.RELOAD_RATE, this);
       }
     }
-
+    this.player.lamp.x = this.player.sprite.world.x-200;
+    this.player.lamp.y = this.player.sprite.world.y-200;
+    this.player.lamp.refresh();
+    //this.mask.refresh();
   },
 
-  fire: function(x, y) {
+  fire: function(x, y, ang) {
     var offset = this.player.sprite.width;
-    var angle_to_mouse = this.player.sprite.body.rotation + Math.PI/2;
+    var angle_to_mouse = ang + Math.PI/2;
     var new_bullet = this.bullets.create(x+offset*Math.sin( - angle_to_mouse ), y+offset*Math.cos( angle_to_mouse), "bullet_img");
     game.physics.box2d.enable(new_bullet);
     new_bullet.body.setCircle(2.5);
@@ -234,27 +200,5 @@ GameStart.prototype = {
     setTimeout(function(thingy){thingy.sprite.destroy();}, 100, body1);
   },
 
-  moveRoom: function(b1, b2, f1, f2, begin) {
-    if (!begin) return;
-    if (!this.allowDoors) return;
-    this.allowDoors = false;
-    pos = b2.toPosition;
-    xDiff = (pos.x - this.mapPos.x)
-    yDiff = (pos.y - this.mapPos.y)
-    //Strange bug
-    if (xDiff && yDiff) xDiff = 0;
-    this.mapPos = pos;
-
-    console.log("MOVING BODY");
-    console.log(this.player.sprite);
-
-    setTimeout(function(that){ that.allowDoors = true;
-                              that.enterRoom(xDiff,yDiff); }, 1, this,xDiff,yDiff);
-  },
-
-  findPathTo: function(tilex, tiley) {
-    console.log("Finding path...",tilex, tiley);
-  
-  },
 }
 
