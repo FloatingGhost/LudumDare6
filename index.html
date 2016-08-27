@@ -16,11 +16,18 @@
   <script src="lib/box2d-plugin-full.min.js" type="text/javascript"></script>
   <script src="lib/phaser-virtual-joystick.min.js" type="text/javascript"></script>
 
-  <!--PHASES-->
+  <!--CLASSES-->
+  <script src="src/entity.js"></script>
 
+  <!--PHASES-->
+  <script src="src/menu.js"></script>
+  <script src="src/game_start.js"></script>
+
+ 
   <!--GAME-->
   <script type="text/javascript">
     var game = new Phaser.Game(640, 480, Phaser.AUTO, "game");
-    //game.state.add(....)
+    game.state.add("game_start", GameStart);
+    game.state.add("Menu", Menu, true);
   </script>
 </html>
