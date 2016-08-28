@@ -9,7 +9,6 @@ LevelManager.prototype = {
     if (levelID == 2) {
       game.state.start("hitler");
     }
-    console.log("LOADING LEVEL ",levelID);
     this.completed = false
     this.enemies = [];
     this.buttons = [];
@@ -19,7 +18,6 @@ LevelManager.prototype = {
     var levelJSON = levels[levelID];
     if (!levelJSON) return;
     if (this.map) game.physics.box2d.clearTilemapLayerBodies(this.map);
-    console.log(levelJSON)
     var map = levelJSON.mapname;
     this.spawnAt = levelJSON.spawnAt;
     this.target = levelJSON.teleportTo;
@@ -39,6 +37,7 @@ LevelManager.prototype = {
     dat = this.mapToPath(dat);
     this.pf = new PF.Grid(dat);
     this.path = new PF.AStarFinder({allowDiagonal:true,
+                                    dontCrossCorners: true,
                                     heuristic:PF.Heuristic.Euclidian,
                                     weight: 100});
 
@@ -69,7 +68,6 @@ LevelManager.prototype = {
     
     for (i = 0; i < enemies_to_spawn.length; i++) {
       var e = enemies_to_spawn[i];
-      console.log("Spawning ",e.type," at ",e.x*32, e.y*32);
       var en = new AI(e.x*32, e.y*32, e.type, 
                     e.category, this.path, this.pf.clone());
       this.enemies.push(en);
@@ -79,11 +77,10 @@ LevelManager.prototype = {
 
   update: function(playerX, playerY) {
     for (i = 0; i < this.enemies.length; i++) {
-      this.enemies[i].update(playerX, playerY)
+      try{
+        this.enemies[i].update(playerX, playerY)
+      } catch (e) {}
     }
-   // console.log(this.map.getTile(
-   //                   Math.floor(playerX/32),
-   //                   Math.floor(playerY/32)).index)
     this.mask.refresh();
     this.lamp.x = playerX-200;
     this.lamp.y = playerY-200;
@@ -111,7 +108,6 @@ LevelManager.prototype = {
             game.math.within(centreY, button.body.y, 64)) {
           yay++;
           if (!goal.activated) {
-            console.log("ACTIVE!");
             goal.activated = true;
             button.click.play();
           }
@@ -120,7 +116,6 @@ LevelManager.prototype = {
       if (yay == this.goals.length && !this.completed) {
         this.completed = true;
         //Open the door
-        console.log("YAY!"); 
        game.add.audio("tele").play();
       }
     }
@@ -193,11 +188,26 @@ levels = [{
   mapname: "Floor1",
   spawnAt: {x:44, y: 98},
   enemies: [
+
+    {
+      type:"mummy",
+      category: 1,
+      x: 50,
+      y: 75
+    },
+
     {
      type:"mummy",
-     category: AI.prototype.MELEE,
+     category: 1,
      x: 10,
      y: 10,
+    },
+
+    {
+      type:"mummy",
+      category: 1,
+      x: 70,
+      y: 10
     }
   ],
   buttons: [
@@ -205,6 +215,11 @@ levels = [{
       type: "button",
       x: 20,
       y: 10
+    },
+    {
+      type: "button",
+      x: 62,
+      y: 30
     }
   ],
   goals: [
@@ -215,7 +230,16 @@ levels = [{
       width: 6,
       height: 6,
       activated: 0,
-    }
+    },
+    {       
+      type: "button",
+      x: 49,
+      y: 35,
+      width: 6,
+      height: 6,
+      activated: 0,
+    },
+
   ],
   ladder: {
     x: 44, y:46
@@ -236,7 +260,34 @@ levels = [{
 {
   mapname: "Floor2",
   spawnAt: {x:2, y:5},
-  enemies: [],
+  enemies: [
+   
+
+    {
+      type:"mummy",
+      category: 1,
+      x: 21,
+      y: 25
+    },
+   {
+      type:"mummy",
+      category: 1,
+      x: 39,
+      y: 18
+    },
+
+    
+    {
+      type:"mummy",
+      category: 1,
+      x: 9,
+      y: 46
+    },
+
+
+
+
+  ],
   buttons: [
     {
       type: "button",

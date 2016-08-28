@@ -1,16 +1,16 @@
-var Menu = function() {};
+var GameOver = function() {};
 
-Menu.prototype = {
+GameOver.prototype = {
    
   preload:function() {
-    
+    game.load.image("bg", "res/img/entities/GameOver.png");  
   },
 
   init:   function() {
-    game.state.start("intro");
   },  
 
   create: function() {
+    game.add.sprite(0,0, "bg");
 
   },
 

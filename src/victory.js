@@ -1,16 +1,16 @@
-var Menu = function() {};
+var Victory = function() {};
 
-Menu.prototype = {
+Victory.prototype = {
    
   preload:function() {
-    
+    game.load.image("bg", "res/img/entities/Victory.png");  
   },
 
   init:   function() {
-    game.state.start("intro");
   },  
 
   create: function() {
+    game.add.sprite(0,0, "bg");
 
   },
 

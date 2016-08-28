@@ -1,7 +1,6 @@
 var Alert = function() {
   this.msgBox = game.add.sprite(50, 250, "msgbox");
   this.msgBox.alpha = 0;
-  this.msgBox.fixedToCamera = true;
 }
 
 Alert.prototype = {
@@ -21,21 +20,24 @@ Alert.prototype = {
               font: '10pt Arial',
               fill: 'white'
             },
-
+  y: 270,
+  x: 60, 
   showMessage: function(name, message) {
     this.interrupt = true;
     this.msgBox.alpha = 1;
+    this.msgBox.x = this.x;
+    this.msgBox.y = this.y;
     game.world.bringToTop(this.msgBox);
     this.time = 20;
-    var nametext = game.add.text(60, 270, name, this.nameStyle);
+    var nametext = game.add.text(this.x+10, this.y, name, this.nameStyle);
     game.world.bringToTop(nametext);
     nametext.fixedToCamera =true;
     this.text.push(nametext);
-    var msgtext = game.add.text(60, 320, message, this.msgStyle);
+    var msgtext = game.add.text(this.x+10, this.y+50, message, this.msgStyle);
     game.world.bringToTop(msgtext);
     msgtext.fixedToCamera = true;
     this.text.push(msgtext);
-    var nextText = game.add.text(430, 430, "LMB to continue", this.nextStyle);
+    var nextText = game.add.text(this.x + 350, this.y + 100, "LMB to continue", this.nextStyle);
     game.world.bringToTop(nextText);
     nextText.fixedToCamera = true;
     this.text.push(nextText);

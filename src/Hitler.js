@@ -31,6 +31,8 @@ Hitler.prototype = {
   PLAYER_VEL: 300, 
   can_fire: false,
   MAP_BODY: 100, 
+  hitlerTime: 200,
+
   preload: function() {
    
     game.load.image("msgbox", "res/img/entities/MsgBox.png"); 
@@ -52,7 +54,6 @@ Hitler.prototype = {
     this.intro.play();
     this.theme = game.add.audio("theme");
     this.theme.loop =1;
-    this.hitlerActions = [this.fireCircle]; 
     this.alert = new Alert();
     this.map = game.add.tilemap("floor");
     this.map.addTilesetImage("Main", "Tiles");
@@ -110,9 +111,18 @@ Hitler.prototype = {
 
   },
   
-  hitlerAction: function(actions, context) {
-    actions[Math.floor(Math.random()*actions.length)](context);
-    setTimeout(context.hitlerAction, 1000, actions, context);
+  hitlerAction: function() {
+    var i = Math.floor(Math.random() * 5);
+    switch (i) {
+      case 0:
+        this.fireCircle();
+        break;
+      default:
+        this.fireCircle();
+        break;
+
+    }
+    this.hitlerTime = 200;
   },
   update: function() {
     if (this.alert.interrupt) {
@@ -125,14 +135,19 @@ Hitler.prototype = {
       this.alert.showMessage(txt[0], txt[1]);
     } else {
       if (introIndex != 100) {
-      console.log("Starting theme...", introIndex, introText.length);
       this.intro.stop();
       this.theme.play();
       introIndex = 100;
       this.can_fire = true;
       
-      setTimeout(this.hitlerAction, 500, this.hitlerActions, this);
       }
+    }
+
+    if (this.hitlerTime == 0) {
+      this.hitlerAction();
+    } else {
+
+    this.hitlerTime-=1;
     }
     //Stop the player
     this.player.body.setZeroVelocity();
@@ -147,35 +162,36 @@ Hitler.prototype = {
     this.gun.x = this.player.world.x + Math.sin(-rot)*15
     this.gun.y = this.player.world.y + Math.cos(rot)*15    
   
-
-    //MOVEMENT
-    //UP/DOWN
-    if (this.cursors.up.isDown || 
-        game.input.keyboard.isDown(Phaser.Keyboard.W)) {
+//UP/DOWN
+    if (this.cursors.up.isDown || game.input.keyboard.isDown(Phaser.Keyboard.W)) {
       this.player.body.velocity.y = -(this.PLAYER_VEL);
-      this.player.animations.play("walk_away", 15, true)
     }
-    else if (this.cursors.down.isDown || 
-             game.input.keyboard.isDown(Phaser.Keyboard.S)) {
+    else if (this.cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S)) {
       this.player.body.velocity.y = (this.PLAYER_VEL);
-      this.player.animations.play("walk_to", 15, true);
-    } 
-    else {
+    }
+    //LEFT/RIGHT
+    if (this.cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.A)) {
+      this.player.body.velocity.x = -(this.PLAYER_VEL);
+    }
+    else if (this.cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D)) {
+      this.player.body.velocity.x = (this.PLAYER_VEL);
+    }
+
+    if (this.player.body.velocity.x < 0) {
+      //left
+      this.player.animations.play("walk_left", 15, true);
+    } else if (this.player.body.velocity.x > 0) {
+      // right
+      this.player.animations.play("walk_right", 15, true);
+    } else if (this.player.body.velocity.y < 0) {
+      //up
+      this.player.animations.play("walk_away", 15, true);
+    } else if (this.player.body.velocity.y > 0) {
+      //down
+this.player.animations.play("walk_to", 15, true);
+    } else {
       this.player.animations.stop();
     }
-
-    //LEFT/RIGHT
-    if (this.cursors.left.isDown || 
-        game.input.keyboard.isDown(Phaser.Keyboard.A)) {
-      this.player.body.velocity.x = -(this.PLAYER_VEL);
-        this.player.animations.play("walk_left",15, true);
-    }
-    else if (this.cursors.right.isDown || 
-             game.input.keyboard.isDown(Phaser.Keyboard.D)) {
-      this.player.body.velocity.x = (this.PLAYER_VEL);
-      this.player.animations.play("walk_right", 15, true);
-    }
-
     //CLICK
     if (game.input.activePointer.isDown) {
       if (this.can_fire) {
@@ -207,14 +223,14 @@ Hitler.prototype = {
 
   },
 
-  fireCircle: function(context) {
+  fireCircle: function() {
     num = 5;
     angOffset = Math.random() * (Math.PI/4);
     offset = 100
     for ( i = angOffset + (-Math.PI/2); i <angOffset +  Math.PI/2 ; i += Math.PI/num) {
       xOff = Math.sin(-i) * offset;
       yOff = Math.cos(i)*offset;
-      context.fire(context.hitler.x+xOff, yOff+context.hitler.y, i, 10, "tank");
+      this.fire(this.hitler.world.x + xOff, yOff+this.hitler.world.y, i, 10, "tank");
     }
   },
 
@@ -241,7 +257,6 @@ Hitler.prototype = {
   hitHitler: function(b1, b2, f1, f2, begin) {
     if (!begin) return;
     if (b1.name == "tank") return;
-    console.log("HIT HITLER!");
     b1.sprite.destroy(); 
     this.hitler.HEALTH -= 20;
     if (this.hitler.HEALTH == 0) {
@@ -252,13 +267,12 @@ Hitler.prototype = {
   hitPlayer: function(b1, b2, f1, f2, begin) {
     if (!begin) return;
     if (b1.name == "bullet") return;
-    console.log("PLAYER HIT!");
     this.player.health -= 5;
     this.tinfoilStr.text = "Tinfoil Hat Strength: "+this.player.health+"%";
     b1.sprite.destroy();
   
     if (this.player.health == 0) {
-      game.state.start("game_over");
+      game.state.start("gameover");
     }
   }
 

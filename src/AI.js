@@ -4,15 +4,13 @@ function AI(x, y, fname, aitype, pathfinder, pf) {
   this.sprite.body.setCollisionCategory(999);
   this.sprite.body.setCategoryContactCallback(1000, this.healthCallback, this);
   this.aitype = aitype;
-  if (!this.aitype) this.aitype = 1;
+  if ([undefined, null].includes(this.aitype)) this.aitype = 1;
   this.pathfinder = pathfinder;
   this.pf = pf;
   this.healthbar = game.add.graphics(0,0);
-  console.log(pf);
-  console.log("Creating ",fname,", TYPE ",this.aitype,", AT (",x,y,")");
-  console.log(this.pathfinder);
   this.sprite.body.fixedRotation = true;
   this.MAXHEALTH = this.HEALTH
+  
 }
 
 AI.prototype = {
@@ -20,8 +18,9 @@ AI.prototype = {
   MELEE : 1,
   HEALER: 2,
   HEALTH: 100, 
-  SPEED: 50,
-  
+  SPEED: 10,
+  can_fire: true,
+
   posToSquare: function(i) {
     return Math.floor(i/32);
   }, 
@@ -50,26 +49,63 @@ AI.prototype = {
       yArr.push(this.path[i][1] * 32);
     }
     //Check for distance
-    if (1 < xArr.length && xArr.length < 30) {
+    if (1 < xArr.length && xArr.length < 100) {
       
       movingTo = [xArr[1], yArr[1]]
       if (JSON.stringify(movingTo) == JSON.stringify(this.movingTo)) return;
  
        this.movingTo = movingTo;
-        t = game.add.tween(this.sprite.body).to({x:xArr[2], y:yArr[2]}, 
-                                              (10000) / this.SPEED);
-        t.start();
+       game.add.tween(this.sprite.body).to({x:xArr[2], y:yArr[2]}, 
+                                              (10000) / this.SPEED).start();
         //if (xDiff < 0) this.sprite.body.moveLeft(Math.abs(xDiff));
         //if (xDiff > 0) this.sprite.body.moveRight(Math.abs(xDiff));
         //if (yDiff < 0) this.sprite.body.moveUp(Math.abs(yDiff));
         //if (yDiff < 0) this.sprite.body.moveDown(Math.abs(yDiff));
     }  else {
-    this.sprite.body.setZeroVelocity();
+    //this.sprite.body.setZeroVelocity();
   }
+
+  //Check for LoS, and fire if ranged
+  xDiff = Math.abs(this.sprite.world.x - playerX);
+  yDiff = Math.abs(this.sprite.world.y - playerY);
+  distance = Math.sqrt((xDiff*xDiff) + (yDiff*yDiff));
+  if (this.aitype == this.RANGED && distance < 500) {
+    //Raycast from here to the player
+    var ray = game.physics.box2d.raycast(this.sprite.world.x, 
+                                         this.sprite.world.y,
+                                         playerX, playerY,
+                                         0, null);
+    for (i = 0; i < ray.length; i++) {
+      if (ray[i].body.name == "PLAYER" && this.can_fire) {
+        //I see you!
+        this.fire(playerX, playerY); 
+        this.can_fire = false;
+      }
+    } 
+  }
+  },
+  fire: function(pX, pY) {
+    var offset = this.sprite.width;
+    var angle_to_mouse = game.math.angleBetweenPoints(
+                            {x:this.sprite.world.x, y:this.sprite.world.y},
+                            {x:pX, y:pY})+ Math.PI/2;
+    var new_bullet = game.add.sprite(this.sprite.world.x+offset*Math.sin( - angle_to_mouse ), this.sprite.world.y+offset*Math.cos( angle_to_mouse), "arrow");
+    game.physics.box2d.enable(new_bullet);
+    new_bullet.body.setCollisionCategory(1000);
+    new_bullet.body.velocity.x = this.BULLET_VEL * Math.sin(- angle_to_mouse);
+    new_bullet.body.velocity.y = this.BULLET_VEL * Math.cos(angle_to_mouse);
+    new_bullet.body.setCategoryContactCallback(100, this.kill, this);
+    //ADD TTL
+    game.world.bringToTop(new_bullet)
+
+  },
+
+  kill: function(b1, b2, f1, f2, begin) {
+    if (!begin)return;
+    b1.destroy();
   },
 
   healthCallback: function(b1, b2, f1, f2, begin) {
-    console.log("boom", this.HEALTH);
     if (!begin) return;
     b2.destroy();
     this.HEALTH -= 25;

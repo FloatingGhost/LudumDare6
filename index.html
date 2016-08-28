@@ -33,12 +33,18 @@
   <script src="src/menu.js"></script>
   <script src="src/game_start.js"></script>
   <script src="src/Hitler.js"></script>
- 
+  <script src="src/intro.js"></script> 
+  <script src="src/victory.js"></script>
+  <script src="src/gameover.js"></script>
+
   <!--GAME-->
   <script type="text/javascript">
     var game = new Phaser.Game(640, 480, Phaser.CANVAS, "game");
     game.state.add("game_start", GameStart);
     game.state.add("hitler", Hitler);
+    game.state.add("victory", Victory); 
+    game.state.add("intro", Intro);
+    game.state.add("gameover", GameOver);
     game.state.add("Menu", Menu, true);
 
   </script>

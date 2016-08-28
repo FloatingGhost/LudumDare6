@@ -42,17 +42,17 @@ GameStart.prototype = {
     game.load.image("Door", "res/img/entities/Door.png"); 
     game.load.image("pistol", "res/img/entities/Gun.png"); 
     game.load.spritesheet("player", "res/img/entities/Player_Anim.png",50,55); 
-    game.load.image("mummy", "res/img/entities/Player.png");
+    game.load.image("mummy", "res/img/entities/Mummy.png");
     game.load.audio("bomb", "res/snd/bomb.wav");
     game.load.audio("shoot", "res/snd/shoot.wav");
     game.load.audio("cavern", "res/snd/Proof_Cavern.wav");
     game.load.image("button", "res/img/entities/Ankh.png");
     game.load.audio("click", "res/snd/button-click.wav");
     game.load.audio("tele", "res/snd/tele.wav");
+    game.load.image("arrow", "res/img/entities/Arrow.png");
   },
 
   init:   function() {
-    console.log("Entering game_start...");
   },  
 
   create: function() {
@@ -76,6 +76,7 @@ GameStart.prototype = {
                                                         [20,21,22,23,24,25,26]);
     this.player.walk_left = this.player.sprite.animations.add("walk_left",
                                                         [27,28,29,30,31,32,33]);
+    
     game.camera.follow(this.player.sprite, Phaser.Camera.FOLLOW_TOPDOWN);
     
     //CREATE GROUPS
@@ -117,7 +118,7 @@ GameStart.prototype = {
   
     this.levelMan.loadLevel(this.level);
   
-
+    this.player.sprite.body.name = "PLAYER"
     game.world.bringToTop(this.bullets)
     game.world.bringToTop(this.gun);
     game.world.bringToTop(this.player.sprite);  
@@ -137,31 +138,41 @@ GameStart.prototype = {
     this.gun.rotation = (rot+ Math.PI/2)
     this.gun.x = this.player.sprite.world.x + Math.sin(-rot)*15
     this.gun.y = this.player.sprite.world.y + Math.cos(rot)*15
-    //UP/DOWN
+    anymov = false;
+     //UP/DOWN
     if (this.cursors.up.isDown || game.input.keyboard.isDown(Phaser.Keyboard.W)) {
       this.player.sprite.body.velocity.y = -(this.PLAYER_VEL);
-      this.player.sprite.animations.play("walk_away", 15, true)
     }                          
     else if (this.cursors.down.isDown || game.input.keyboard.isDown(Phaser.Keyboard.S)) {
       this.player.sprite.body.velocity.y = (this.PLAYER_VEL);
+    }
+    //LEFT/RIGHT
+    if (this.cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.A)) {
+      this.player.sprite.body.velocity.x = -(this.PLAYER_VEL);
+    }
+    else if (this.cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D)) {
+      this.player.sprite.body.velocity.x = (this.PLAYER_VEL);
+    }
+    
+    if (this.player.sprite.body.velocity.x < 0) {
+      //left
+      this.player.sprite.animations.play("walk_left", 15, true);
+    } else if (this.player.sprite.body.velocity.x > 0) {
+      // right
+      this.player.sprite.animations.play("walk_right", 15, true);
+    } else if (this.player.sprite.body.velocity.y < 0) {
+      //up
+      this.player.sprite.animations.play("walk_away", 15, true);
+    } else if (this.player.sprite.body.velocity.y > 0) {
+      //down
       this.player.sprite.animations.play("walk_to", 15, true);
     } else {
       this.player.sprite.animations.stop();
     }
-
-    //LEFT/RIGHT
-    if (this.cursors.left.isDown || game.input.keyboard.isDown(Phaser.Keyboard.A)) {
-      this.player.sprite.body.velocity.x = -(this.PLAYER_VEL);
-        this.player.sprite.animations.play("walk_left",15, true);
-    }
-    else if (this.cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D)) {
-      this.player.sprite.body.velocity.x = (this.PLAYER_VEL);
-      this.player.sprite.animations.play("walk_right", 15, true);
-    }
-
     //CHEATS
     if (game.input.keyboard.isDown(Phaser.Keyboard.Q)) {
-      this.levelMan.goToNext =true;
+      this.tinfoil = 5;
+      this.healthCallback(0,0,0,0,1);
     }  
     //CLICK
     if (game.input.activePointer.isDown) {
@@ -185,13 +196,13 @@ GameStart.prototype = {
       this.level += 1;
      
       this.levelMan.loadLevel(this.level);
-      console.log("Moving player to ",this.levelMan.spawnAt.x*32,this.levelMan.spawnAt.y*32);
       game.add.tween(this.player.sprite.body).to({x:this.levelMan.spawnAt.x*32,
                                            y:this.levelMan.spawnAt.y*32},
                                            100, "Linear").start();
       game.world.bringToTop(this.player.sprite); 
       game.world.bringToTop(this.gun);
       game.world.bringToTop(this.bullets);
+      this.startedExit = false;
     }
   },
 
@@ -230,12 +241,12 @@ GameStart.prototype = {
       this.player.sprite.destroy();
       this.gun.destroy();
       this.can_fire = false;
-    }
+      game.state.start("gameover");
+     }
   },
   nextLevel: function(b1, b2, f1, f2, begin) {
     if (!begin) return;
     b2.destroy();
-    console.log("Nextlevel!");
     this.levelMan.goToNext = true;
   },
 }
