@@ -217,6 +217,7 @@ GameStart.prototype = {
     new_bullet.body.setCategoryContactCallback(this.MAP_BODY, this.kill, this);
     new_bullet.body.setCategoryContactCallback(this.DOOR_BODY, this.kill, this);
     //ADD TTL
+    this.world.bringToTop(new_bullet)
     setTimeout(function(b){b.destroy()}, 500, new_bullet);
 
   },
