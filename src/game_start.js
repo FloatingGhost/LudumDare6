@@ -6,7 +6,12 @@ WATER = 8
 CLAY = 6
 WETSAND = 3
 CRACKEDSTONE = 4 
-
+LADDER_BL = 23
+LADDER_BR = 24
+LADDER_TL = 13
+LADDER_TR = 14
+OTHERSAND = 2
+GREENTHING = 9
 GameStart.prototype = {
    
   player:0,
@@ -24,10 +29,13 @@ GameStart.prototype = {
   MAP_BODY : 100,
   startedExit: false, 
   INVENTORY : {}, 
+  level : 0,
 
   preload:function() {
     game.load.image("bullet_img", "res/img/entities/Bullet.png");
     game.load.tilemap("Floor1",  "res/maps/Floor1.json", 
+                      null, Phaser.Tilemap.TILED_JSON);
+    game.load.tilemap("Floor2", "res/maps/Floor2.json",
                       null, Phaser.Tilemap.TILED_JSON);
     game.load.image("Tiles",  "res/img/TILES.png");
     game.load.image("Door", "res/img/entities/Door.png"); 
@@ -75,6 +83,7 @@ GameStart.prototype = {
     game.physics.box2d.enable(this.player.sprite);
     this.player.sprite.body.setCategoryContactCallback(this.DOOR_BODY, this.moveRoom, this);
     this.player.sprite.body.setCategoryContactCallback(999, this.healthCallback, this);
+    this.player.sprite.body.setCategoryContactCallback(2000, this.nextLevel, this);
     this.player.sprite.body.fixedRotation = true
         
 
@@ -101,7 +110,7 @@ GameStart.prototype = {
     //CREATE MASTER LEVEL MANAGER
     this.levelMan = new LevelManager();  
   
-    this.levelMan.loadLevel(0);
+    this.levelMan.loadLevel(this.level);
   
 
     game.world.bringToTop(this.bullets)
@@ -140,6 +149,11 @@ GameStart.prototype = {
     else if (this.cursors.right.isDown || game.input.keyboard.isDown(Phaser.Keyboard.D)) {
       this.player.sprite.body.velocity.x = (this.PLAYER_VEL);
       this.player.sprite.animations.play("walk_right", 15, true);
+    }
+
+    //CHEATS
+    if (game.input.keyboard.isDown(Phaser.Keyboard.Q)) {
+      this.levelMan.goToNext =true;
     }  
     //CLICK
     if (game.input.activePointer.isDown) {
@@ -159,6 +173,16 @@ GameStart.prototype = {
                                                y:this.levelMan.target.y*32}, 1000,
                                                "Linear");
       t.start();
+    } else if (this.levelMan.goToNext) {
+      this.level += 1;
+     
+      this.levelMan.loadLevel(this.level);
+      console.log("Moving player to ",this.levelMan.spawnAt.x*32,this.levelMan.spawnAt.y*32);
+      game.add.tween(this.player.sprite.body).to({x:this.levelMan.spawnAt.x*32,
+                                           y:this.levelMan.spawnAt.y*32},
+                                           100, "Linear").start();
+      game.world.bringToTop(this.player.sprite); 
+      game.world.bringToTop(this.gun);
     }
   },
 
@@ -188,6 +212,7 @@ GameStart.prototype = {
   
   render: function() {
     this.levelMan.render();
+    game.debug.spriteCoords(this.player.sprite);
   },
 
   healthCallback: function(b1, b2, f1, f2, begin) {
@@ -200,6 +225,11 @@ GameStart.prototype = {
       this.can_fire = false;
     }
   },
-
+  nextLevel: function(b1, b2, f1, f2, begin) {
+    if (!begin) return;
+    b2.destroy();
+    console.log("Nextlevel!");
+    this.levelMan.goToNext = true;
+  },
 }
 

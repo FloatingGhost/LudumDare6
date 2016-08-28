@@ -6,20 +6,27 @@ LevelManager.prototype = {
   
   
   loadLevel: function(levelID) {
+    console.log("LOADING LEVEL ",levelID);
     this.completed = false
     this.enemies = [];
     this.buttons = [];
     this.lamps = [];
-
+    this.goToNext = false;
+    
     var levelJSON = levels[levelID];
+    if (!levelJSON) return;
+    if (this.map) game.physics.box2d.clearTilemapLayerBodies(this.map);
+    console.log(levelJSON)
     var map = levelJSON.mapname;
+    this.spawnAt = levelJSON.spawnAt;
     this.target = levelJSON.teleportTo;
     //LOAD MAPS
     this.map = game.add.tilemap(map);
     this.map.addTilesetImage("Main", "Tiles");
     this.layer = this.map.createLayer("Tile Layer 1");
     this.layer.resizeWorld();
-    this.map.setCollision([CRACKEDSTONE, WETSAND, IMPASSE, WATER, CLAY], true);
+    this.map.setCollision([LADDER_BL, LADDER_BR, LADDER_TL, LADDER_TR, 
+                           CRACKEDSTONE, WETSAND, IMPASSE, WATER, CLAY], true);
     //LIGHTS
     this.setupLighting();
 
@@ -71,7 +78,9 @@ LevelManager.prototype = {
     for (i = 0; i < this.enemies.length; i++) {
       this.enemies[i].update(playerX, playerY)
     }
-
+   // console.log(this.map.getTile(
+   //                   Math.floor(playerX/32),
+   //                   Math.floor(playerY/32)).index)
     this.mask.refresh();
     this.lamp.x = playerX-200;
     this.lamp.y = playerY-200;
@@ -87,7 +96,7 @@ LevelManager.prototype = {
       button.lamp.y = button.body.y-200;
       button.lamp.refresh();
       for (j = 0; j < this.goals.length; j++ ) {
-        goal = this.goals[i];
+        goal = this.goals[j];
         //Check in each of the 4 corners
         var x1 = 32*goal.x;
         var y1 = 32*goal.y;
@@ -99,12 +108,8 @@ LevelManager.prototype = {
             game.math.within(centreY, button.body.y, 64)) {
           yay++;
           if (!goal.activated) {
+            console.log("ACTIVE!");
             goal.activated = true;
-            button.click.play();
-          }
-        } else {
-          if (goal.activated) {
-            goal.activated = false;
             button.click.play();
           }
         }
@@ -112,7 +117,8 @@ LevelManager.prototype = {
       if (yay == this.goals.length && !this.completed) {
         this.completed = true;
         //Open the door
-        game.add.audio("tele").play();
+        console.log("YAY!"); 
+       game.add.audio("tele").play();
       }
     }
     
@@ -129,7 +135,14 @@ LevelManager.prototype = {
     converted = game.physics.box2d.convertTilemap(this.map, this.layer);
     sightBlockers = []
     for (var i = 0; i < converted.length; i++) {
-      converted[i].setCollisionCategory(this.MAP_BODY);
+      var ind = this.map.getTile(
+        Math.floor(converted[i].x / 32), 
+        Math.floor(converted[i].y / 32)).index;
+      
+      if ([LADDER_TL, LADDER_TR, LADDER_BR, LADDER_BL].includes(ind)) 
+        converted[i].setCollisionCategory(2000)
+      if ([IMPASSE, WATER, CLAY, CRACKEDSTONE, WETSAND].includes(ind))
+        converted[i].setCollisionCategory(this.MAP_BODY);
     }
     //Save it for later
     this.collisionMap = converted;
@@ -175,6 +188,7 @@ LevelManager.prototype = {
 //lovely JSONs
 levels = [{
   mapname: "Floor1",
+  spawnAt: {x:44, y: 98},
   enemies: [
     {
      type:"mummy",
@@ -200,6 +214,9 @@ levels = [{
       activated: 0,
     }
   ],
+  ladder: {
+    x: 44, y:46
+  },
   door: {
     x:43,
     y:39,
@@ -208,7 +225,55 @@ levels = [{
   },
   teleportTo: {
     x: 45,
-    y: 46
+    y: 44
   
   }
-}]
+},
+
+{
+  mapname: "Floor2",
+  spawnAt: {x:2, y:5},
+  enemies: [],
+  buttons: [
+    {
+      type: "button",
+      x: 23,
+      y: 16
+    },
+    {
+      type: "button",
+      x: 7,
+      y: 5
+    }
+  ],
+  goals: [
+    {
+      type: "button",
+      x: 0,
+      y: 44,
+      width: 6,
+      height: 6,
+      activated: 0,
+    },
+    {
+      type: "button",
+      x: 34,
+      y: 45,
+      width: 6,
+      height: 6,
+      activated:0 
+    }
+  ],
+  door: {
+    x:43,
+    y:39,
+    width: 6,
+    height: 1
+  },
+  teleportTo: {
+    x: 44,
+    y: 45
+
+  }
+},  
+]

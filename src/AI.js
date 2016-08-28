@@ -28,6 +28,7 @@ AI.prototype = {
 
   update: function(playerX, playerY) {
     //Find a path
+    if (this.HEALTH <= 0) return;
     bak = this.pf.clone(); 
     this.path = this.pathfinder.findPath(
                             this.posToSquare(this.sprite.world.x), 
@@ -48,13 +49,13 @@ AI.prototype = {
       xArr.push(this.path[i][0] * 32);
       yArr.push(this.path[i][1] * 32);
     }
-    this.sprite.body.setZeroVelocity();
     //Check for distance
     if (1 < xArr.length && xArr.length < 30) {
-    
       
       movingTo = [xArr[1], yArr[1]]
-        this.movingTo = movingTo;
+      if (JSON.stringify(movingTo) == JSON.stringify(this.movingTo)) return;
+ 
+       this.movingTo = movingTo;
         t = game.add.tween(this.sprite.body).to({x:xArr[2], y:yArr[2]}, 
                                               (10000) / this.SPEED);
         t.start();
@@ -62,7 +63,9 @@ AI.prototype = {
         //if (xDiff > 0) this.sprite.body.moveRight(Math.abs(xDiff));
         //if (yDiff < 0) this.sprite.body.moveUp(Math.abs(yDiff));
         //if (yDiff < 0) this.sprite.body.moveDown(Math.abs(yDiff));
-    } 
+    }  else {
+    this.sprite.body.setZeroVelocity();
+  }
   },
 
   healthCallback: function(b1, b2, f1, f2, begin) {
