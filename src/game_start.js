@@ -211,6 +211,7 @@ GameStart.prototype = {
     game.physics.box2d.enable(new_bullet);
     new_bullet.body.setCircle(2.5);
     new_bullet.bullet = true;
+    new_bullet.body.setCollisionCategory(1000);
     new_bullet.body.velocity.x = this.BULLET_VEL * Math.sin(- angle_to_mouse);
     new_bullet.body.velocity.y = this.BULLET_VEL * Math.cos(angle_to_mouse);
     new_bullet.body.setCategoryContactCallback(this.MAP_BODY, this.kill, this);
@@ -222,14 +223,13 @@ GameStart.prototype = {
 
   kill: function(body1, body2, fixture1, fixture2, begin) {
     if (!begin) return;
-    setTimeout(function(thingy){thingy.sprite.destroy();}, 100, body1);
+    setTimeout(function(thingy){if(thingy.sprite)thingy.sprite.destroy();}, 10, body1);
   },
   
   render: function() {
-    game.debug.spriteCoords(this.player.sprite,32,32)
 
     for (i = 0; i < this.enemies.length; i++) {
-      game.debug.spriteCoords(this.enemies[i].sprite, 32, 80);
+      this.enemies[i].render();
     }
   }
 

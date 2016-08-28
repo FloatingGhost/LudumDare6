@@ -1,19 +1,23 @@
 function AI(x, y, fname, aitype, pathfinder, pf) {
   this.sprite = game.add.sprite(x,y,fname);
   game.physics.box2d.enable(this.sprite); 
+  this.sprite.body.setCategoryContactCallback(1000, this.healthCallback, this);
   this.aitype = aitype;
   if (!this.aitype) this.aitype = 1;
   this.pathfinder = pathfinder;
   this.pf = pf;
+  this.healthbar = game.add.graphics(0,0);
   console.log(pf);
   console.log("Creating ",fname,", TYPE ",this.aitype,", AT (",x,y,")");
+  this.sprite.body.fixedRotation = true;
+  this.MAXHEALTH = this.HEALTH
 }
 
 AI.prototype = {
   RANGED: 0,
   MELEE : 1,
   HEALER: 2,
-  
+  HEALTH: 100, 
   SPEED: 10,
   
   posToSquare: function(i) {
@@ -42,14 +46,12 @@ AI.prototype = {
       xArr.push(this.path[i][0] * 32);
       yArr.push(this.path[i][1] * 32);
     }
+    this.sprite.body.setZeroVelocity();
     //Check for distance
     if (1 < xArr.length && xArr.length < 30) {
     
       
       movingTo = [xArr[1], yArr[1]]
-      if (JSON.stringify(movingTo) != JSON.stringify(this.movingTo)) {
-        console.log(movingTo);
-        console.log("FROM", this.sprite.world.x, this.sprite.world.y)
         this.movingTo = movingTo;
         
         t = game.add.tween(this.sprite.body).to({x:xArr[1], y:yArr[1]}, 
@@ -59,7 +61,35 @@ AI.prototype = {
         //if (xDiff > 0) this.sprite.body.moveRight(Math.abs(xDiff));
         //if (yDiff < 0) this.sprite.body.moveUp(Math.abs(yDiff));
         //if (yDiff < 0) this.sprite.body.moveDown(Math.abs(yDiff));
-      }
-    }
+    } 
+  },
+
+  healthCallback: function(b1, b2, f1, f2, begin) {
+    console.log("boom", this.HEALTH);
+    if (!begin) return;
+    b2.destroy();
+    this.HEALTH -= 10;
+    if (this.HEALTH == 0) b1.sprite.destroy();
+  },
+
+  render: function() {
+    
+    this.healthbar.clear();
+    if (!this.sprite.alive) return
+    game.world.bringToTop(this.healthbar);
+    this.healthbar.moveTo(this.sprite.world.x-this.sprite.height/2, 
+                          this.sprite.world.y-this.sprite.height);
+
+    this.healthbar.lineStyle(3, 0x00000, 0.8);
+    this.healthbar.beginFill(0x00000);
+    this.healthbar.drawRect(this.sprite.world.x-this.sprite.height/2,
+                            this.sprite.world.y-this.sprite.height,
+                            50, 10);
+    this.healthbar.beginFill(0xff0000);
+    this.healthbar.drawRect(this.sprite.world.x-this.sprite.height/2,
+                            this.sprite.world.y-this.sprite.height,
+                            50*(this.HEALTH/this.MAXHEALTH), 10);
+    this.healthbar.endFill();
+    
   }
 }
