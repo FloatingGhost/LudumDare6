@@ -1,7 +1,7 @@
 #Proof
 
 You are Timothy Ignucius Norman Foyle, foremost member of the
-"United People's Investigatory Force", tasking yourself
+"United Peoples' Investigatory Force", tasking yourself
 with exposing the lies of the lizard people in power.
 
 Reptilians such as politicians, monarchs and anyone more
