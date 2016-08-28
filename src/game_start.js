@@ -1,5 +1,12 @@
 var GameStart = function() {};
 
+SAND = 5
+IMPASSE = 7
+WATER = 8
+CLAY = 6
+WETSAND = 3
+CRACKEDSTONE = 4 
+
 GameStart.prototype = {
    
   player:0,
@@ -7,7 +14,8 @@ GameStart.prototype = {
   world:false,
   doors:false,
   allowDoors: true,
-  
+  enemies: [],
+ 
   BULLET_VEL: 500,
   RELOAD_RATE: 100,
   PLAYER_VEL: 200,
@@ -23,7 +31,7 @@ GameStart.prototype = {
     game.load.image("Door", "res/img/entities/Door.png"); 
     game.load.image("pistol", "res/img/entities/Gun.png"); 
     game.load.spritesheet("player", "res/img/entities/Player_Anim.png",50,55); 
-
+    game.load.image("enemy", "res/img/entities/Player.png");
   },
 
   init:   function() {
@@ -78,12 +86,6 @@ GameStart.prototype = {
 
     this.layer.resizeWorld();
     
-    SAND = 5
-    IMPASSE = 7
-    WATER = 8
-    CLAY = 6
-    WETSAND = 3
-    CRACKEDSTONE = 4 
     this.map.setCollision([CRACKEDSTONE, WETSAND, IMPASSE, WATER, CLAY], true);
 
     //ALLOW JEWS TO CONTROL THE WORLD
@@ -110,7 +112,7 @@ GameStart.prototype = {
     dat = _.cloneDeep(this.map.layers[0].data)
     dat = this.mapToPath(dat);
     this.pf = new PF.Grid(dat);
-    this.path = new PF.AStarFinder();
+    this.path = new PF.AStarFinder({allowDiagonal:true, dontCrossCorners:true});
     
     game.world.bringToTop(this.bullets)
     
@@ -122,7 +124,7 @@ GameStart.prototype = {
     //this.player.lamp.createLighting(this.player.sprite);
     this.player.lamp.createLighting(sightBlockers);
     this.lamps.push(this.player.lamp);
-    this.mask = game.add.illuminated.darkMask(this.lamps);
+    this.mask = game.add.illuminated.darkMask(this.lamps, "#000");
     
     //this.mask.addLampSprite(this.player.sprite);
     this.mask.fixedToCamera = false;
@@ -131,18 +133,21 @@ GameStart.prototype = {
     this.mask.height = 150*32;
     this.player.lamp.bringToTop()
   
-    //this.mask.alpha = 0.7;
+    this.mask.alpha = 0.7;
     game.world.bringToTop(this.gun);
     game.world.bringToTop(this.player.sprite);  
+    
+    this.enemies.push(new AI(40*32, 98*32, "enemy", AI.MELEE, this.path, this.pf));
+    
   },
 
   mapToPath: function(bk) {
     for (i = 0; i < bk.length; i++) {
       for (j = 0; j < bk[i].length; j++) {
         index = bk[i][j].index;
-        if ([2,3].includes(index)) {
-          bk[i][j] = 0
-        } else {bk[i][j] = 1}
+        if ([IMPASSE, CLAY, CRACKEDSTONE, WETSAND].includes(index)) {
+          bk[i][j] = 1
+        } else {bk[i][j] = 0}
       }
     }
     return bk;
@@ -193,8 +198,11 @@ GameStart.prototype = {
     this.player.lamp.y = this.player.sprite.world.y-200;
     
     this.player.lamp.refresh();
-    
-    },
+   
+    for (i = 0; i < this.enemies.length; i++) {
+      this.enemies[i].update(this.player.sprite.world.x, this.player.sprite.world.y);
+    } 
+  },
 
   fire: function(x, y, ang) {
     var offset = this.player.sprite.width;
@@ -216,6 +224,14 @@ GameStart.prototype = {
     if (!begin) return;
     setTimeout(function(thingy){thingy.sprite.destroy();}, 100, body1);
   },
+  
+  render: function() {
+    game.debug.spriteCoords(this.player.sprite,32,32)
+
+    for (i = 0; i < this.enemies.length; i++) {
+      game.debug.spriteCoords(this.enemies[i].sprite, 32, 80);
+    }
+  }
 
 }
 
