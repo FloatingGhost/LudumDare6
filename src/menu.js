@@ -7,7 +7,7 @@ Menu.prototype = {
   },
 
   init:   function() {
-    game.state.start("hitler");
+    game.state.start("game_start");
   },  
 
   create: function() {

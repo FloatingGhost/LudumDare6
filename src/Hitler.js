@@ -42,6 +42,7 @@ Hitler.prototype = {
     game.load.image("bullet", "res/img/entities/Bullet.png");
     game.load.audio("intro", "res/snd/Hitler_Intro.wav");
     game.load.audio("theme", "res/snd/Hitler_Theme.wav");
+    game.load.image("tank", "res/img/entities/Tank.png");
   },
 
   create: function() {
@@ -51,6 +52,7 @@ Hitler.prototype = {
     this.intro.play();
     this.theme = game.add.audio("theme");
     this.theme.loop =1;
+    this.hitlerActions = [this.fireCircle]; 
     this.alert = new Alert();
     this.map = game.add.tilemap("floor");
     this.map.addTilesetImage("Main", "Tiles");
@@ -78,6 +80,9 @@ Hitler.prototype = {
     this.gun    = game.add.sprite(0,0,"gun");
     game.physics.box2d.enable(this.hitler);
     game.physics.box2d.enable(this.player);
+    this.hitler.HEALTH = 1000
+    this.hitler.MAXHEALTH = 1000
+    this.hitler.body.setCircle(50);
     this.player.body.fixedRotation = true;
     this.hitler.body.static = true;
     this.player.walk_away = this.player.animations.add("walk_away",
@@ -90,15 +95,25 @@ Hitler.prototype = {
                                                         [27,28,29,30,31,32,33]);
 
     this.bullets = game.add.group();  
-
+    this.hitler.body.setCollisionCategory(1001);
+    this.hitler.body.name = "hitler"
+    this.player.body.setCollisionCategory(1002);
     //CREATE KEYBOARD STUFFS
     this.cursors = game.input.keyboard.createCursorKeys();
+    this.player.health = 100;
+    this.tinfoilStr = game.add.text(0, 460, "Tinfoil Hat Strength: "+this.player.health+"%", {font:"16pt Arial", fill: "black"});
+    this.tinfoilStr.fixedToCamera = true;
 
     //CREATE MUSIC
     this.shoot = game.add.audio("shoot");
+    this.healthBar = game.add.graphics();
 
   },
-
+  
+  hitlerAction: function(actions, context) {
+    actions[Math.floor(Math.random()*actions.length)](context);
+    setTimeout(context.hitlerAction, 1000, actions, context);
+  },
   update: function() {
     if (this.alert.interrupt) {
       this.alert.update();
@@ -115,7 +130,8 @@ Hitler.prototype = {
       this.theme.play();
       introIndex = 100;
       this.can_fire = true;
-      this.fireCircle(10);
+      
+      setTimeout(this.hitlerAction, 500, this.hitlerActions, this);
       }
     }
     //Stop the player
@@ -163,8 +179,8 @@ Hitler.prototype = {
     //CLICK
     if (game.input.activePointer.isDown) {
       if (this.can_fire) {
-        xOff = 15 * Math.sin(-rot);
-        yOff = 15 * Math.cos(rot);
+        xOff = 50 * Math.sin(-rot);
+        yOff = 50 * Math.cos(rot);
         this.fire(xOff + this.player.world.x, 
                   yOff + this.player.world.y, rot);
         this.can_fire = false;
@@ -174,19 +190,35 @@ Hitler.prototype = {
   },
 
   render: function() {
+    if (introIndex != 100) return;
+    x = 50
+    y = 10
+    game.world.bringToTop(this.healthBar);
+    this.healthBar.moveTo(x,y);
+
+    this.healthBar.lineStyle(3, 0x00000, 0.8);
+    this.healthBar.beginFill(0x00000);
+    this.healthBar.drawRect(x, y,
+                            500, 30);
+    this.healthBar.beginFill(0xff0000);
+    this.healthBar.drawRect(x,y,
+                            500*(this.hitler.HEALTH/this.hitler.MAXHEALTH), 30);
+    this.healthBar.endFill();
 
   },
 
-  fireCircle: function(num) {
-    offset = 15
-    for ( i = -Math.PI/2; i < Math.PI/2; i += Math.PI/num) {
+  fireCircle: function(context) {
+    num = 5;
+    angOffset = Math.random() * (Math.PI/4);
+    offset = 100
+    for ( i = angOffset + (-Math.PI/2); i <angOffset +  Math.PI/2 ; i += Math.PI/num) {
       xOff = Math.sin(-i) * offset;
       yOff = Math.cos(i)*offset;
-      this.fire(this.hitler.x+xOff, yOff+this.hitler.y, i);
+      context.fire(context.hitler.x+xOff, yOff+context.hitler.y, i, 10, "tank");
     }
   },
 
-  fire: function(x, y, angle, vel, sprite,cat,snd,callback,speed) {
+  fire: function(x, y, angle, vel, sprite,cat,snd,speed) {
     if (!sprite) sprite = "bullet";
     if (!cat) cat = 1000;
     if (!speed) speed = 300;
@@ -199,7 +231,36 @@ Hitler.prototype = {
     magicboolet.body.setCollisionCategory(cat);
     magicboolet.body.velocity.x = speed * Math.sin(-angle);
     magicboolet.body.velocity.y = speed * Math.cos(angle);
-     
+    magicboolet.body.setCategoryContactCallback(1001, this.hitHitler, this);
+    magicboolet.body.setCategoryContactCallback(1002, this.hitPlayer, this);
+    magicboolet.body.name = sprite;
     setTimeout(function(spr){if(spr)spr.destroy()}, 1500, magicboolet);
   },
+
+
+  hitHitler: function(b1, b2, f1, f2, begin) {
+    if (!begin) return;
+    if (b1.name == "tank") return;
+    console.log("HIT HITLER!");
+    b1.sprite.destroy(); 
+    this.hitler.HEALTH -= 20;
+    if (this.hitler.HEALTH == 0) {
+      game.state.start("victory");
+    }
+  },
+
+  hitPlayer: function(b1, b2, f1, f2, begin) {
+    if (!begin) return;
+    if (b1.name == "bullet") return;
+    console.log("PLAYER HIT!");
+    this.player.health -= 5;
+    this.tinfoilStr.text = "Tinfoil Hat Strength: "+this.player.health+"%";
+    b1.sprite.destroy();
+  
+    if (this.player.health == 0) {
+      game.state.start("game_over");
+    }
+  }
+
+  
 }
