@@ -1,6 +1,7 @@
 function AI(x, y, fname, aitype, pathfinder, pf) {
   this.sprite = game.add.sprite(x,y,fname);
   game.physics.box2d.enable(this.sprite); 
+  this.sprite.body.setCollisionCategory(999);
   this.sprite.body.setCategoryContactCallback(1000, this.healthCallback, this);
   this.aitype = aitype;
   if (!this.aitype) this.aitype = 1;
@@ -9,6 +10,7 @@ function AI(x, y, fname, aitype, pathfinder, pf) {
   this.healthbar = game.add.graphics(0,0);
   console.log(pf);
   console.log("Creating ",fname,", TYPE ",this.aitype,", AT (",x,y,")");
+  console.log(this.pathfinder);
   this.sprite.body.fixedRotation = true;
   this.MAXHEALTH = this.HEALTH
 }
@@ -18,7 +20,7 @@ AI.prototype = {
   MELEE : 1,
   HEALER: 2,
   HEALTH: 100, 
-  SPEED: 10,
+  SPEED: 50,
   
   posToSquare: function(i) {
     return Math.floor(i/32);
@@ -53,8 +55,7 @@ AI.prototype = {
       
       movingTo = [xArr[1], yArr[1]]
         this.movingTo = movingTo;
-        
-        t = game.add.tween(this.sprite.body).to({x:xArr[1], y:yArr[1]}, 
+        t = game.add.tween(this.sprite.body).to({x:xArr[2], y:yArr[2]}, 
                                               (10000) / this.SPEED);
         t.start();
         //if (xDiff < 0) this.sprite.body.moveLeft(Math.abs(xDiff));
