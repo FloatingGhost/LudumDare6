@@ -6,6 +6,9 @@ LevelManager.prototype = {
   
   
   loadLevel: function(levelID) {
+    if (levelID == 2) {
+      game.state.start("hitler");
+    }
     console.log("LOADING LEVEL ",levelID);
     this.completed = false
     this.enemies = [];

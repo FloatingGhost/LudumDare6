@@ -24,7 +24,7 @@ GameStart.prototype = {
   levelMan: false, 
 
   BULLET_VEL: 500,
-  RELOAD_RATE: 100,
+  RELOAD_RATE: 300,
   PLAYER_VEL: 200,
   MAP_BODY : 100,
   startedExit: false, 
@@ -32,6 +32,7 @@ GameStart.prototype = {
   level : 0,
 
   preload:function() {
+    game.load.image("msgbox", "res/img/entities/MsgBox.png");
     game.load.image("bullet_img", "res/img/entities/Bullet.png");
     game.load.tilemap("Floor1",  "res/maps/Floor1.json", 
                       null, Phaser.Tilemap.TILED_JSON);
@@ -62,6 +63,7 @@ GameStart.prototype = {
 
     //CREATE SPRITES  
     this.gun = game.add.sprite(game.world.centerX, game.world.centerY, "pistol")
+    //this.gun.anchor.setTo({x:0.5, y:0.5})
     this.player = new Entity();   
     this.player.sprite = game.add.sprite(32*44, 32*98, 
                           "player");
@@ -79,6 +81,9 @@ GameStart.prototype = {
     //CREATE GROUPS
     this.bullets = game.add.group(); 
 
+    //ALERTS
+    this.alerts = new Alert();
+    
     //ENABLE THE JEWISH PHYSIKS TO CONTROL SPRITE
     game.physics.box2d.enable(this.player.sprite);
     this.player.sprite.body.setCategoryContactCallback(this.DOOR_BODY, this.moveRoom, this);
@@ -117,10 +122,13 @@ GameStart.prototype = {
     game.world.bringToTop(this.gun);
     game.world.bringToTop(this.player.sprite);  
     game.world.bringToTop(this.tinfoilStr);
+    this.alerts.showMessage("Timothy",
+                            "I know they're here. The ones that built this Pyramid. I must meet them to prove that the lizard people in government were lying to us!");
   },
 
   update: function() {
     this.player.sprite.body.setZeroVelocity();
+    if (this.alerts.interrupt) { this.alerts.update(); return }
     var angle_to_mouse = game.math.angleBetweenPoints({
             x:game.input.activePointer.worldX,
             y:game.input.activePointer.worldY},
@@ -183,16 +191,17 @@ GameStart.prototype = {
                                            100, "Linear").start();
       game.world.bringToTop(this.player.sprite); 
       game.world.bringToTop(this.gun);
+      game.world.bringToTop(this.bullets);
     }
   },
 
   fire: function(x, y, ang) {
     this.shoot.play();
-    var offset = this.player.sprite.width;
+    var offset = this.player.sprite.width - 10;
     var angle_to_mouse = ang + Math.PI/2;
     var new_bullet = this.bullets.create(x+offset*Math.sin( - angle_to_mouse ), y+offset*Math.cos( angle_to_mouse), "bullet_img");
     game.physics.box2d.enable(new_bullet);
-    new_bullet.body.setCircle(2.5);
+    new_bullet.body.setCircle(10);
     new_bullet.bullet = true;
     new_bullet.body.setCollisionCategory(1000);
     new_bullet.body.velocity.x = this.BULLET_VEL * Math.sin(- angle_to_mouse);
@@ -201,18 +210,16 @@ GameStart.prototype = {
     new_bullet.body.setCategoryContactCallback(this.DOOR_BODY, this.kill, this);
     //ADD TTL
     this.world.bringToTop(new_bullet)
-    setTimeout(function(b){b.destroy()}, 500, new_bullet);
 
   },
 
   kill: function(body1, body2, fixture1, fixture2, begin) {
     if (!begin) return;
-    setTimeout(function(thingy){if(thingy.sprite)thingy.sprite.destroy();}, 10, body1);
+    setTimeout(function(thingy){if(thingy.sprite)thingy.sprite.destroy();}, 1000, body1);
   },
   
   render: function() {
     this.levelMan.render();
-    game.debug.spriteCoords(this.player.sprite);
   },
 
   healthCallback: function(b1, b2, f1, f2, begin) {

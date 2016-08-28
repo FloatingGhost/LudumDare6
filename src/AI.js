@@ -72,7 +72,7 @@ AI.prototype = {
     console.log("boom", this.HEALTH);
     if (!begin) return;
     b2.destroy();
-    this.HEALTH -= 10;
+    this.HEALTH -= 25;
     if (this.HEALTH == 0) b1.sprite.destroy();
   },
 
